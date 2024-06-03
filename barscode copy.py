@@ -8,7 +8,9 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
-from kivy.uix.image import Image
+from kivy.uix.popup import Popup
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.scrollview import ScrollView
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 
@@ -40,6 +42,10 @@ class BarcodeScannerApp(App):
         self.revert_button = Button(text='Reverter Presença')
         self.revert_button.bind(on_press=self.revert_presence)
         self.layout.add_widget(self.revert_button)
+        
+        self.register_button = Button(text='Cadastrar Novo')
+        self.register_button.bind(on_press=self.open_register_popup)
+        self.layout.add_widget(self.register_button)
         
         self.result_label = Label(text='')
         self.layout.add_widget(self.result_label)
@@ -132,6 +138,48 @@ class BarcodeScannerApp(App):
 
     def clean_input(self, instance):
         self.text_input.text = ''
+
+    def open_register_popup(self, instance):
+        content = GridLayout(cols=2, padding=6)
+        content.add_widget(Label(text='CPF:'))
+        self.cpf_input = TextInput(multiline=False)
+        content.add_widget(self.cpf_input)
+        
+        content.add_widget(Label(text='Nome:'))
+        self.nome_input = TextInput(multiline=False)
+        content.add_widget(self.nome_input)
+        
+        content.add_widget(Label(text='Relacionamento:'))
+        self.relacionamento_input = TextInput(multiline=False)
+        content.add_widget(self.relacionamento_input)
+        
+        content.add_widget(Label(text='Telefone:'))
+        self.telefone_input = TextInput(multiline=False)
+        content.add_widget(self.telefone_input)
+        
+        save_button = Button(text='Salvar')
+        save_button.bind(on_press=self.save_new_entry)
+        content.add_widget(save_button)
+
+        self.popup = Popup(title='Cadastro Novo', content=content, size_hint=(0.9, 0.9))
+        self.popup.open()
+
+    def save_new_entry(self, instance):
+        new_entry = pd.DataFrame([{
+            'cpf': self.cpf_input.text.strip(),
+            'nome': self.nome_input.text.strip(),
+            'relacionamento': self.relacionamento_input.text.strip(),
+            'telefone': self.telefone_input.text.strip(),
+            'presença': 'Presente'
+        }])
+        
+        # Adicionar o novo registro ao DataFrame
+        self.df = pd.concat([self.df, new_entry], ignore_index=True)
+        self.df['telefone'] = self.df['telefone'].astype(str)
+        self.df.to_excel(self.excel_file_path, index=False)
+        
+        self.popup.dismiss()
+        self.result_label.text = 'Novo cadastro salvo com presença confirmada'
 
 if __name__ == '__main__':
     BarcodeScannerApp().run()
