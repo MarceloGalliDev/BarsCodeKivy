@@ -1,6 +1,6 @@
 # pylint: disable=all
 
-import kivy
+import kivy  # noqa: F401
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
