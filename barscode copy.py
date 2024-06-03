@@ -1,7 +1,8 @@
 # pylint: disable=all
 # flake8: noqa
 
-import kivy  # noqa: F401
+import kivy
+import os
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
@@ -14,78 +15,123 @@ from kivy.graphics.texture import Texture
 import cv2
 import pandas as pd
 
-
 class BarcodeScannerApp(App):
     def build(self):
         self.layout = BoxLayout(orientation='vertical')
-    
-        self.label = Label(text='Aponte a câmera para um código de barras')
-        self.layout.add_widget(self.label)
 
-        self.image = Image()
-        self.layout.add_widget(self.image)
+        self.label = Label(text='Aponte o leitor para um código de barras')
+        self.layout.add_widget(self.label)
 
         self.text_input = TextInput(multiline=False)
         self.layout.add_widget(self.text_input)
 
-        self.button = Button(text='Buscar Nome')
+        self.button = Button(text='Buscar Nome e Telefone')
         self.button.bind(on_press=self.lookup_name)
         self.layout.add_widget(self.button)
+        
+        self.clean_button = Button(text='Limpar Campo')
+        self.clean_button.bind(on_press=self.clean_input)
+        self.layout.add_widget(self.clean_button)
 
         self.confirm_button = Button(text='Confirmar Presença')
         self.confirm_button.bind(on_press=self.confirm_presence)
         self.layout.add_widget(self.confirm_button)
-
+        
+        self.revert_button = Button(text='Reverter Presença')
+        self.revert_button.bind(on_press=self.revert_presence)
+        self.layout.add_widget(self.revert_button)
+        
         self.result_label = Label(text='')
         self.layout.add_widget(self.result_label)
 
-        self.capture = cv2.VideoCapture(0)
-        Clock.schedule_interval(self.update, 1.0 / 30.0)
-
-        # Carregar a tabela do Excel
-        self.df = pd.read_excel('tabela.xlsx')
+        # Definir o caminho do arquivo Excel
+        self.excel_file_path = 'tabela.xlsx'
+        
+        # Carregar o arquivo Excel
+        self.load_excel()
 
         return self.layout
 
-    def update(self, dt):
-        ret, frame = self.capture.read()
-        if ret:
-            # Converte a imagem do OpenCV para um formato que o Kivy pode usar
-            buffer = cv2.flip(frame, 0).tobytes()
-            texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='bgr')
-            texture.blit_buffer(buffer, colorfmt='bgr', bufferfmt='ubyte')
-            self.image.texture = texture
-
-            # Detecta códigos de barras na imagem
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            barcode_detector = cv2.QRCodeDetector()
-            retval, decoded_info, points, _ = barcode_detector.detectAndDecodeMulti(gray)
-            if retval:
-                code = decoded_info[0]
-                self.text_input.text = code
+    def load_excel(self):
+        self.df = pd.read_excel(
+            self.excel_file_path, 
+            dtype={
+                'cpf': str,
+                'nome': str,
+                'presença': str,
+                'telefone': str
+            }
+        )
 
     def lookup_name(self, instance):
         code = self.text_input.text.strip()
-        record = self.df.loc[self.df['codebar'] == code]
+        if not code:
+            self.result_label.text = 'Nenhum código escaneado'
+            return
+        
+        # Recarregar a tabela do Excel
+        self.load_excel()
+
+        record = self.df.loc[self.df['cpf'] == code]
         if not record.empty:
+            cpf = record.iloc[0]['cpf']
             name = record.iloc[0]['nome']
-            self.result_label.text = f'Nome: {name}'
-            self.current_record = record
+            telefone = record.iloc[0]['telefone']
+            if record.iloc[0]['presença'] == 'Presente':
+                self.result_label.text = f'CPF: {cpf}\nNome: {name}\nTelefone: {telefone}\nPresença já confirmada'
+                self.current_record = None
+            else:
+                self.result_label.text = f'Nome: {name}\nTelefone: {telefone}'
+                self.current_record = record
         else:
             self.result_label.text = 'Código não encontrado'
             self.current_record = None
 
     def confirm_presence(self, instance):
-        if self.current_record is not None:
-            idx = self.current_record.index[0]
-            self.df.at[idx, 'presença'] = 'Presente'
-            self.df.to_excel('tabela_atualizada.xlsx', index=False)
-            self.result_label.text += '\nPresença confirmada'
-        else:
-            self.result_label.text = 'Nenhum registro para confirmar'
+        code = self.text_input.text.strip()
+        if not code:
+            self.result_label.text = 'Nenhum código escaneado'
+            return
 
-    def on_stop(self):
-        self.capture.release()
+        # Recarregar a tabela do Excel
+        self.load_excel()
+
+        record = self.df.loc[self.df['cpf'] == code]
+        if not record.empty:
+            if record.iloc[0]['presença'] == 'Presente':
+                self.result_label.text = 'Presença já confirmada'
+            else:
+                idx = record.index[0]
+                self.df.at[idx, 'presença'] = 'Presente'
+                self.df.to_excel(self.excel_file_path, index=False)
+                self.result_label.text = 'Presença confirmada'
+        else:
+            self.result_label.text = 'Código não encontrado'
+
+    def revert_presence(self, instance):
+        code = self.text_input.text.strip()
+        if not code:
+            self.result_label.text = 'Nenhum código escaneado'
+            return
+
+        # Recarregar a tabela do Excel
+        self.load_excel()
+
+        record = self.df.loc[self.df['cpf'] == code]
+        if not record.empty:
+            if record.iloc[0]['presença'] == 'Presente':
+                idx = record.index[0]
+                self.df.at[idx, 'presença'] = '-'
+                self.df['telefone'] = self.df['telefone'].astype(str)
+                self.df.to_excel(self.excel_file_path, index=False)
+                self.result_label.text = 'Presença revertida'
+            else:
+                self.result_label.text = 'Presença não estava confirmada'
+        else:
+            self.result_label.text = 'Código não encontrado'
+
+    def clean_input(self, instance):
+        self.text_input.text = ''
 
 if __name__ == '__main__':
     BarcodeScannerApp().run()
