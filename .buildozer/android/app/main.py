@@ -1,11 +1,8 @@
 # pylint: disable=all
 # flake8: noqa
 
-from matplotlib.pyplot import margins
 import pandas as pd
-import cv2
 import kivy
-from pyzbar import pyzbar
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
@@ -30,22 +27,14 @@ class BarcodeScannerApp(App):
         # campos
         self.title_label = Label(text="Aponte o leitor para um código de barras", size_hint=(1,0.5))
         with self.title_label.canvas.before:
-            Color(0.1, 1, 0, 0.2)  # Definir RGBA
+            Color(0, 0, 1, 1)  # Definir RGBA
             self.rect = Rectangle(size=self.title_label.size, pos=self.title_label.pos)
             self.title_label.bind(size=self.update_rect, pos=self.update_rect)
         
-        self.cpf_label = Label(text="CPF", size_hint=(1,0.5))
-        with self.cpf_label.canvas.before:
-            Color(0.1, 1, 0, 0.2)  # Define a cor de fundo (verde)
-            self.result_rect_cpf = Rectangle(size=self.cpf_label.size, pos=self.cpf_label.pos)
-            self.cpf_label.bind(size=self.update_result_rect_cpf, pos=self.update_result_rect_cpf)
+        self.cpf_label = Label(text="CPF", size_hint=(1,1), halign="center", valign="center")
         self.cpf_input = TextInput(multiline=False)
         
         self.result_label = Label(text="")
-        with self.result_label.canvas.before:
-            Color(1, 1, 1, 0.2)  # Define a cor de fundo (verde)
-            self.result_rect = Rectangle(size=self.result_label.size, pos=self.result_label.pos)
-            self.result_label.bind(size=self.update_result_rect, pos=self.update_result_rect)
 
         self.button = Button(text="Buscar Nome e Telefone")
         self.button.bind(on_press=self.lookup_name)
@@ -64,18 +53,15 @@ class BarcodeScannerApp(App):
 
         self.view_button = Button(text='Visualizar Registros')
         self.view_button.bind(on_press=self.view_records)
-        
-        # Botão para ativar a câmera e ler o QR code
-        self.scan_qr_button = Button(text="Ler QR Code")
-        self.scan_qr_button.bind(on_press=self.activate_camera)
 
         # layout
         self.layout.add_widget(self.title_label)
         
         self.layout.add_widget(self.result_label)
 
-        self.layout.add_widget(self.cpf_label)
-        self.layout.add_widget(self.cpf_input)
+        self.input_layout.add_widget(self.cpf_label)
+        self.input_layout.add_widget(self.cpf_input)
+        self.layout.add_widget(self.input_layout)
 
         self.button_1_layout.add_widget(self.button)
         self.button_1_layout.add_widget(self.clean_button)
@@ -86,7 +72,6 @@ class BarcodeScannerApp(App):
         self.button_2_layout.add_widget(self.revert_button)
         self.layout.add_widget(self.button_2_layout)
 
-        self.button_3_layout.add_widget(self.scan_qr_button)
         self.button_3_layout.add_widget(self.register_button)
         self.button_3_layout.add_widget(self.view_button)
         self.layout.add_widget(self.button_3_layout)
@@ -102,14 +87,6 @@ class BarcodeScannerApp(App):
     def update_rect(self, widget, *args):
         self.rect.pos = widget.pos
         self.rect.size = widget.size
-
-    def update_result_rect(self, widget, *args):
-        self.result_rect.pos = widget.pos
-        self.result_rect.size = widget.size
-
-    def update_result_rect_cpf(self, widget, *args):
-        self.result_rect_cpf.pos = widget.pos
-        self.result_rect_cpf.size = widget.size
 
     def load_excel(self):
         self.df = pd.read_excel(
@@ -281,20 +258,6 @@ class BarcodeScannerApp(App):
     def close_popup(self, instance):
         self.popup.dismiss()
 
-    def activate_camera(self, instance):
-        self.capture = cv2.VideoCapture(0)
-        Clock.schedule_interval(self.detect_qr_code, 1.0 / 30.0)
-
-    def detect_qr_code(self, dt):
-        ret, frame = self.capture.read()
-        if ret:
-            decoded_objects = pyzbar.decode(frame)
-            for obj in decoded_objects:
-                self.cpf_input.text = obj.data.decode('utf-8')
-                self.result_label.text = "QR Code detectado"
-                self.capture.release()
-                Clock.unschedule(self.detect_qr_code)
-                break
 
 if __name__ == "__main__":
     BarcodeScannerApp().run()
