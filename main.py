@@ -89,7 +89,7 @@ class BarcodeScannerApp(App):
         self.layout.add_widget(self.button_3_layout)
 
         # Definir o caminho do arquivo Excel
-        self.excel_file_path = "tabela.xlsx"
+        self.excel_file_path = "tabela/tabela.xlsx"
 
         # Carregar o arquivo Excel
         self.load_excel()
