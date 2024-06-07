@@ -1,20 +1,19 @@
 # pylint: disable=all
 # flake8: noqa
 
-from matplotlib.pyplot import margins
 import pandas as pd
 import cv2
 import kivy
-from pyzbar import pyzbar
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.popup import Popup
 from kivy.clock import Clock
+from kivy.graphics.texture import Texture
+from kivy.uix.image import Image
 from kivy.graphics import Color, Rectangle
 from kivy.uix.scrollview import ScrollView
 
@@ -67,11 +66,10 @@ class BarcodeScannerApp(App):
         
         # Botão para ativar a câmera e ler o QR code
         self.scan_qr_button = Button(text="Ler QR Code")
-        self.scan_qr_button.bind(on_press=self.activate_camera)
+        self.scan_qr_button.bind(on_press=self.open_camera_popup)
 
         # layout
         self.layout.add_widget(self.title_label)
-        
         self.layout.add_widget(self.result_label)
 
         self.layout.add_widget(self.cpf_label)
@@ -80,7 +78,6 @@ class BarcodeScannerApp(App):
         self.button_1_layout.add_widget(self.button)
         self.button_1_layout.add_widget(self.clean_button)
         self.layout.add_widget(self.button_1_layout)
-
 
         self.button_2_layout.add_widget(self.confirm_button)
         self.button_2_layout.add_widget(self.revert_button)
@@ -118,7 +115,7 @@ class BarcodeScannerApp(App):
         )
 
     def lookup_name(self, instance):
-        code = self.text_input.text.strip()
+        code = self.cpf_input.text.strip()
         if not code:
             self.result_label.text = "Nenhum código escaneado"
             return
@@ -142,7 +139,7 @@ class BarcodeScannerApp(App):
             self.current_record = None
 
     def confirm_presence(self, instance):
-        code = self.text_input.text.strip()
+        code = self.cpf_input.text.strip()
         if not code:
             self.result_label.text = "Nenhum código escaneado"
             return
@@ -163,7 +160,7 @@ class BarcodeScannerApp(App):
             self.result_label.text = "Código não encontrado"
 
     def revert_presence(self, instance):
-        code = self.text_input.text.strip()
+        code = self.cpf_input.text.strip()
         if not code:
             self.result_label.text = "Nenhum código escaneado"
             return
@@ -185,7 +182,7 @@ class BarcodeScannerApp(App):
             self.result_label.text = "Código não encontrado"
 
     def clean_input(self, instance):
-        self.text_input.text = ""
+        self.cpf_input.text = ""
 
     def open_register_popup(self, instance):
         content = GridLayout(cols=2, padding=6)
@@ -281,20 +278,45 @@ class BarcodeScannerApp(App):
     def close_popup(self, instance):
         self.popup.dismiss()
 
-    def activate_camera(self, instance):
+    def open_camera_popup(self, instance):
+        # Create a popup layout with camera feed
+        self.camera_layout = BoxLayout(orientation="vertical")
+        self.camera_image = Image(size_hint=(1, 1))
+        self.camera_layout.add_widget(self.camera_image)
+        
+        self.close_camera_button = Button(text="Fechar", size_hint=(1, 0.1))
+        self.close_camera_button.bind(on_press=self.close_camera_popup)
+        self.camera_layout.add_widget(self.close_camera_button)
+        
+        self.camera_popup = Popup(title="Escanear QR Code", content=self.camera_layout, size_hint=(0.9, 0.9))
+        self.camera_popup.open()
+        
         self.capture = cv2.VideoCapture(0)
-        Clock.schedule_interval(self.detect_qr_code, 1.0 / 30.0)
+        Clock.schedule_interval(self.update_camera, 1.0 / 30.0)
 
-    def detect_qr_code(self, dt):
+    def update_camera(self, dt):
         ret, frame = self.capture.read()
         if ret:
-            decoded_objects = pyzbar.decode(frame)
-            for obj in decoded_objects:
-                self.cpf_input.text = obj.data.decode('utf-8')
+            # Display the frame in the Kivy Image widget
+            buf = cv2.flip(frame, 0).tostring()
+            texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='bgr')
+            texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
+            self.camera_image.texture = texture
+            
+            # Detect QR code
+            qr_decoder = cv2.QRCodeDetector()
+            data, bbox, _ = qr_decoder.detectAndDecode(frame)
+            if bbox is not None and data:
+                self.cpf_input.text = data
                 self.result_label.text = "QR Code detectado"
                 self.capture.release()
-                Clock.unschedule(self.detect_qr_code)
-                break
+                Clock.unschedule(self.update_camera)
+                self.camera_popup.dismiss()
+
+    def close_camera_popup(self, instance):
+        self.capture.release()
+        Clock.unschedule(self.update_camera)
+        self.camera_popup.dismiss()
 
 if __name__ == "__main__":
     BarcodeScannerApp().run()
