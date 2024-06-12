@@ -1,0 +1,72 @@
+#:kivy 1.0.9
+
+<qrcodeLayout>:
+    cols: 2
+    GridLayout:
+        size_hint: 1, 1
+        cols: 1
+        rows: 6
+        padding: 5
+        spacing: 3
+
+        Label:
+            id: result_label
+            text: ""
+            size_hint: 1, 0.5
+            canvas.before:
+                Color:
+                    rgba: 1, 1, 1, 0.2
+                Rectangle:
+                    size: self.size
+                    pos: self.pos
+
+        Button:
+            text: 'Capture'
+            size_hint_y: None
+            height: '48dp'
+            on_press: app.activate_camera()
+
+        Button:
+            text: 'Capture'
+            size_hint_y: None
+            height: '48dp'
+            on_press: app.activate_camera()
+
+        Button:
+            text: 'Capture'
+            size_hint_y: None
+            height: '48dp'
+            on_press: app.activate_camera()
+
+        Button:
+            text: 'Capture'
+            size_hint_y: None
+            height: '48dp'
+            on_press: app.activate_camera()
+
+        TextInput:
+            id: cpf_input
+            multiline: False
+            height: '48dp'
+            readonly: True
+            font_size: '14sp'
+            background_color: (0, 0, 0, 1)
+            foreground_color: (1, 1, 1, 1)
+            opacity: 0
+
+    GridLayout:
+        cols: 1
+        rows: 3
+        padding: 5
+        spacing: 3
+        Image:
+            id: camera_image
+            size_hint: 1, 1
+        Image:
+            id: capture_image
+            size_hint: 1, 1
+        ToggleButton:
+            text: 'Play'
+            on_press: app.activate_camera()
+            size_hint_y: None
+            height: '48dp'
