@@ -5,18 +5,17 @@ import pandas as pd
 import cv2
 import kivy
 from kivy.app import App
+from kivy.uix.popup import Popup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
-from kivy.uix.popup import Popup
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.uix.image import Image
 from kivy.graphics import Color, Rectangle
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.spinner import Spinner
 
 
 class BarcodeScannerApp(App):
@@ -26,6 +25,7 @@ class BarcodeScannerApp(App):
         self.button_1_layout = BoxLayout(orientation="horizontal", padding=10)
         self.button_2_layout = BoxLayout(orientation="horizontal", padding=10)
         self.button_3_layout = BoxLayout(orientation="horizontal", padding=10)
+        self.camera_layout = BoxLayout(orientation="horizontal", padding=10, size_hint=(1, 2))
         
         # campos
         self.title_label = Label(text="Aponte o leitor para um código de barras", size_hint=(1,0.5))
@@ -64,10 +64,14 @@ class BarcodeScannerApp(App):
 
         self.view_button = Button(text='Visualizar Registros')
         self.view_button.bind(on_press=self.view_records)
-        
+
         # Botão para ativar a câmera e ler o QR code
         self.scan_qr_button = Button(text="Ler QR Code")
-        self.scan_qr_button.bind(on_press=self.open_camera_popup)
+        self.scan_qr_button.bind(on_press=self.activate_camera)
+
+        # Imagem da câmera e captura
+        self.camera_image = Image(size_hint=(1, 1))
+        self.capture_image = Image(size_hint=(1, 1))
 
         # layout
         self.layout.add_widget(self.title_label)
@@ -88,6 +92,10 @@ class BarcodeScannerApp(App):
         self.button_3_layout.add_widget(self.register_button)
         self.button_3_layout.add_widget(self.view_button)
         self.layout.add_widget(self.button_3_layout)
+
+        self.camera_layout.add_widget(self.camera_image)
+        self.camera_layout.add_widget(self.capture_image)
+        self.layout.add_widget(self.camera_layout)
 
         # Definir o caminho do arquivo Excel
         self.excel_file_path = "tabela.xlsx"
@@ -279,50 +287,15 @@ class BarcodeScannerApp(App):
     def close_popup(self, instance):
         self.popup.dismiss()
 
-    def open_camera_popup(self, instance):
-        # Create a popup layout with camera feed
-        self.camera_layout = BoxLayout(orientation="vertical")
-        self.camera_image = Image(size_hint=(1, 1))
-        self.camera_layout.add_widget(self.camera_image)
-
-        # Layout para os botões
-        self.buttons_layout = BoxLayout(size_hint=(1, 0.1), padding=10, spacing=10)
-        
-        # Spinner para selecionar a câmera
-        self.camera_spinner = Spinner(
-            text='Selecionar Câmera',
-            values=('Webcam', 'Câmera do Notebook'),
-            size_hint=(0.5, 1)
-        )
-        self.camera_spinner.bind(text=self.on_spinner_select)
-        self.buttons_layout.add_widget(self.camera_spinner)
-        
-        self.close_camera_button = Button(text="Fechar", size_hint=(0.5, 1))
-        self.close_camera_button.bind(on_press=self.close_camera_popup)
-        self.buttons_layout.add_widget(self.close_camera_button)
-        
-        self.camera_layout.add_widget(self.buttons_layout)
-
-        self.camera_popup = Popup(title="Escanear QR Code", content=self.camera_layout, size_hint=(0.9, 0.9))
-        self.camera_popup.open()
-        
-        self.camera_index = 0  # Default to webcam
-        self.capture = cv2.VideoCapture(self.camera_index)
+    def activate_camera(self, instance):
+        self.capture = cv2.VideoCapture(1)
         Clock.schedule_interval(self.update_camera, 1.0 / 30.0)
-
-    def on_spinner_select(self, spinner, text):
-        if text == 'Câmera do Notebook':
-            self.camera_index = 0
-        elif text == 'Webcam':
-            self.camera_index = 1
-        self.capture.release()
-        self.capture = cv2.VideoCapture(self.camera_index)
 
     def update_camera(self, dt):
         ret, frame = self.capture.read()
         if ret:
             # Display the frame in the Kivy Image widget
-            buf = cv2.flip(frame, 0).tostring()
+            buf = cv2.flip(frame, 0).tobytes()
             texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='bgr')
             texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
             self.camera_image.texture = texture
@@ -333,14 +306,11 @@ class BarcodeScannerApp(App):
             if bbox is not None and data:
                 self.cpf_input.text = data
                 self.result_label.text = "QR Code detectado"
-                self.capture.release()
-                Clock.unschedule(self.update_camera)
-                self.camera_popup.dismiss()
+                self.capture_image.texture = texture
 
-    def close_camera_popup(self, instance):
+    def close_camera(self):
         self.capture.release()
         Clock.unschedule(self.update_camera)
-        self.camera_popup.dismiss()
 
 if __name__ == "__main__":
     BarcodeScannerApp().run()
