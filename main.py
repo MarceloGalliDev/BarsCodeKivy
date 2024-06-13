@@ -2,6 +2,7 @@
 # flake8: noqa
 
 import time
+from turtle import width
 import kivy
 import cv2
 import pandas as pd
@@ -58,8 +59,9 @@ class qrcode(App):
             data, bbox, _ = qr_decoder.detectAndDecode(frame)
             if bbox is not None and data:
                 self.root.ids.cpf_input.text = data
-                self.lookup_name(data)
                 self.root.ids.capture_image.texture = texture
+                self.confirm_presence(data)
+                self.lookup_name(data)
 
     def close_camera(self):
         if self.capture:
@@ -71,9 +73,13 @@ class qrcode(App):
             self.df = pd.read_excel(
                 self.excel_file_path,
                 dtype={"codigo": str, "cpf": str, "nome": str, "presença": str, "telefone": str},
+                index_col=0
             )
+            print("Excel file loaded successfully.")
+            print("Columns in the DataFrame:", self.df.columns)
         except Exception as e:
             self.root.ids.result_label.text = f"Failed to load Excel file: {str(e)}"
+            print(f"Failed to load Excel file: {str(e)}")
 
     def lookup_name(self, code=None):
         if code is None:
@@ -91,7 +97,7 @@ class qrcode(App):
             name = record.iloc[0]["nome"]
             telefone = record.iloc[0]["telefone"]
             if record.iloc[0]["presença"] == "Presente":
-                self.root.ids.result_label.text = f"Código: {codigo}\nCPF: {cpf}\nNome: {name}\nTelefone: {telefone}\nPresença já confirmada"
+                self.root.ids.result_label.text = f"Código: {codigo}\nCPF: {cpf}\nNome: {name}\nTelefone: {telefone}\nPresença confirmada"
                 self.current_record = None
             else:
                 self.root.ids.result_label.text = f"Código: {codigo}\nNome: {name}\nTelefone: {telefone}"
@@ -100,25 +106,32 @@ class qrcode(App):
             self.root.ids.result_label.text = "Código não encontrado"
             self.current_record = None
 
-    def confirm_presence(self):
-        code = self.root.ids.cpf_input.text.strip()
+    def confirm_presence(self, code=None):
+        if code is None:
+            code = self.root.ids.cpf_input.text.strip()
         if not code:
             self.root.ids.result_label.text = "Nenhum código escaneado"
             return
 
         self.load_excel()
+        print("DataFrame after loading in confirm_presence:")
+        print(self.df.head())
 
-        record = self.df.loc[self.df["codigo"] == code]
-        if not record.empty:
-            if record.iloc[0]["presença"] == "Presente":
-                self.root.ids.result_label.text = "Presença já confirmada"
+        try:
+            record = self.df.loc[self.df["codigo"] == code]
+            if not record.empty:
+                if record.iloc[0]["presença"] == "Presente":
+                    self.root.ids.result_label.text = "Presença já confirmada"
+                else:
+                    idx = record.index[0]
+                    self.df.at[idx, "presença"] = "Presente"
+                    self.df.to_excel(self.excel_file_path, index_label='index')
+                    self.root.ids.result_label.text = "Presença confirmada"
             else:
-                idx = record.index[0]
-                self.df.at[idx, "presença"] = "Presente"
-                self.df.to_excel(self.excel_file_path, index=False)
-                self.root.ids.result_label.text = "Presença confirmada"
-        else:
-            self.root.ids.result_label.text = "Código não encontrado"
+                self.root.ids.result_label.text = "Código não encontrado"
+        except KeyError as e:
+            self.root.ids.result_label.text = f"Erro ao buscar código: {str(e)}"
+            print(f"Erro ao buscar código: {str(e)}")
 
     def revert_presence(self):
         code = self.root.ids.cpf_input.text.strip()
@@ -134,7 +147,7 @@ class qrcode(App):
                 idx = record.index[0]
                 self.df.at[idx, "presença"] = "-"
                 self.df["telefone"] = self.df["telefone"].astype(str)
-                self.df.to_excel(self.excel_file_path, index=False)
+                self.df.to_excel(self.excel_file_path, index_label='index')
                 self.root.ids.result_label.text = "Presença revertida"
             else:
                 self.root.ids.result_label.text = "Presença não estava confirmada"
@@ -159,27 +172,28 @@ class qrcode(App):
 
         # Get the last index and increment it
         if self.df.index.size > 0:
-            last_index = self.df.index.max() + 1
+            last_index = int(self.df.index.max()) + 1
         else:
-            last_index = 0
+            last_index = 0  # Starting value for index
 
         new_entry = pd.DataFrame(
-            [
-                {
-                    "codigo": "1000" + str(last_index),
-                    "cpf": cpf,
-                    "nome": nome,
-                    "relacionamento": relacionamento,
-                    "telefone": telefone,
-                    "presença": "Presente",
-                }
-            ],
+            {
+                "codigo": [f"1000{str(last_index)}"],
+                "cpf": [cpf],
+                "nome": [nome],
+                "relacionamento": [relacionamento],
+                "telefone": [telefone],
+                "presença": ["Presente"]
+            },
             index=[last_index]
         )
 
+        # Concatenate new_entry with self.df
         self.df = pd.concat([self.df, new_entry])
         self.df["telefone"] = self.df["telefone"].astype(str)
-        self.df.to_excel(self.excel_file_path, index=True)  # Save with index
+
+        # Save with the index labeled as 'Index'
+        self.df.to_excel(self.excel_file_path, index_label='index')
 
         self.register_popup.dismiss()
         self.root.ids.result_label.text = "Novo cadastro salvo com presença confirmada"
@@ -193,17 +207,17 @@ class qrcode(App):
         grid.clear_widgets()
 
         # Define the columns to display
-        columns_to_display = ["codigo", "nome", "relacionamento", "telefone"]
+        columns_to_display = ["codigo", "nome", "relacionamento", "telefone", "presença"]
         grid.cols = len(columns_to_display) + 1  # Include index column
 
         # Add headers
-        grid.add_widget(Label(text="Index", size_hint_y=None, height=40))
+        grid.add_widget(Label(text="Index", size_hint=(None, None), height=40, width=30))
         for column in columns_to_display:
             grid.add_widget(Label(text=column.capitalize(), size_hint_y=None, height=40))
 
         # Add data rows
         for index, row in self.df.iterrows():
-            grid.add_widget(Label(text=str(index), size_hint_y=None, height=40))
+            grid.add_widget(Label(text=str(index), size_hint=(None, None), height=40, width=30))
             for col in columns_to_display:
                 grid.add_widget(Label(text=str(row[col]), size_hint_y=None, height=40))
 
@@ -216,6 +230,12 @@ class qrcode(App):
             self.register_popup.dismiss()
         if hasattr(self, 'records_popup') and self.records_popup:
             self.records_popup.dismiss()
+
+    def focus_next_input(self, current_input_id):
+        input_ids = ['cpf_input_register', 'nome_input_register', 'relacionamento_input_register', 'telefone_input_register']
+        next_index = (input_ids.index(current_input_id) + 1) % len(input_ids)
+        next_input_id = input_ids[next_index]
+        self.register_popup.ids[next_input_id].focus = True
 
 
 qrcode().run()

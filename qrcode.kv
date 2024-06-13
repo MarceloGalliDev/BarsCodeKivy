@@ -3,21 +3,55 @@
     GridLayout:
         size_hint: 1, 1
         cols: 1
-        rows: 6
+        rows: 8
         padding: 5
         spacing: 3
 
         Label:
             id: result_label
             text: ""
-            size_hint: 1, 0.5
             font_size: 24
+            size_hint: 1, 1
             canvas.before:
                 Color:
                     rgba: 1, 1, 1, 0.2
                 Rectangle:
                     size: self.size
                     pos: self.pos
+        
+        GridLayout:
+            cols: 2
+            rows: 1
+            padding: 5
+            spacing: 3
+            size_hint: 1, None
+
+            Label:
+                text: "CODIGO:"
+                size_hint: (None, None)
+                height: '48dp'
+                width: '100dp'
+                font_size: 22
+                canvas.before:
+                    Color:
+                        rgba: 1, 1, 1, 0.2
+                    Rectangle:
+                        size: self.size
+                        pos: self.pos
+            
+            TextInput:
+                id: cpf_input
+                hint_text: "Digite o código"
+                multiline: False
+                font_size: 22
+                size_hint_y: None
+                height: '48dp'
+
+        Button:
+            text: 'BUSCAR CODIGO'
+            size_hint_y: None
+            height: '48dp'
+            on_press: app.lookup_name()
 
         Button:
             text: 'LIMPAR CAMPO'
@@ -49,15 +83,6 @@
             height: '48dp'
             on_press: app.view_records()
 
-        TextInput:
-            id: cpf_input
-            multiline: False
-            height: '48dp'
-            readonly: True
-            font_size: '14sp'
-            background_color: (0, 0, 0, 1)
-            foreground_color: (1, 1, 1, 1)
-            opacity: 0
 
     GridLayout:
         cols: 1
@@ -103,6 +128,7 @@
                 height: 30  # Adjust input height
                 background_color: (1, 1, 1, 1)  # White background
                 foreground_color: (0, 0, 0, 1)  # Black text
+                on_text_validate: app.focus_next_input('cpf_input_register')  # Handle TAB key
                 canvas.before:
                     Color:
                         rgba: 0.7, 0.7, 0.7, 1  # Light grey border
@@ -124,6 +150,7 @@
                 height: 30  # Adjust input height
                 background_color: (1, 1, 1, 1)
                 foreground_color: (0, 0, 0, 1)
+                on_text_validate: app.focus_next_input('nome_input_register')  # Handle TAB key
                 canvas.before:
                     Color:
                         rgba: 0.7, 0.7, 0.7, 1
@@ -145,6 +172,7 @@
                 height: 30  # Adjust input height
                 background_color: (1, 1, 1, 1)
                 foreground_color: (0, 0, 0, 1)
+                on_text_validate: app.focus_next_input('relacionamento_input_register')  # Handle TAB key
                 canvas.before:
                     Color:
                         rgba: 0.7, 0.7, 0.7, 1
@@ -166,6 +194,7 @@
                 height: 30  # Adjust input height
                 background_color: (1, 1, 1, 1)
                 foreground_color: (0, 0, 0, 1)
+                on_text_validate: app.focus_next_input('telefone_input_register')  # Handle TAB key
                 canvas.before:
                     Color:
                         rgba: 0.7, 0.7, 0.7, 1
