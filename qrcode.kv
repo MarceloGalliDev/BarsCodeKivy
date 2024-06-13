@@ -103,7 +103,7 @@
 
 <RegisterPopup>:
     title: "Cadastro Novo"
-    size_hint: 0.7, 0.5  # Adjust the window size here
+    size_hint: 0.7, 0.5
     BoxLayout:
         orientation: 'vertical'
         padding: 10
@@ -118,20 +118,21 @@
                 text: "CPF:"
                 font_size: 16
                 size_hint_y: None
-                height: 30  # Adjust label height
+                height: 30
 
             TextInput:
                 id: cpf_input_register
                 font_size: '16sp'
                 multiline: False
                 size_hint_y: None
-                height: 30  # Adjust input height
-                background_color: (1, 1, 1, 1)  # White background
-                foreground_color: (0, 0, 0, 1)  # Black text
-                on_text_validate: app.focus_next_input('cpf_input_register')  # Handle TAB key
+                height: 30
+                background_color: (1, 1, 1, 1)
+                foreground_color: (0, 0, 0, 1)
+                cursor_color: (0, 0, 0, 1)
+                on_text_validate: app.focus_next_input('cpf_input_register')
                 canvas.before:
                     Color:
-                        rgba: 0.7, 0.7, 0.7, 1  # Light grey border
+                        rgba: 0, 0, 0, 1
                     Line:
                         width: 1
                         rectangle: (self.x, self.y, self.width, self.height)
@@ -140,7 +141,7 @@
                 text: "Nome:"
                 font_size: 16
                 size_hint_y: None
-                height: 30  # Adjust label height
+                height: 30
 
             TextInput:
                 id: nome_input_register
@@ -150,10 +151,11 @@
                 height: 30  # Adjust input height
                 background_color: (1, 1, 1, 1)
                 foreground_color: (0, 0, 0, 1)
+                cursor_color: (0, 0, 0, 1)
                 on_text_validate: app.focus_next_input('nome_input_register')  # Handle TAB key
                 canvas.before:
                     Color:
-                        rgba: 0.7, 0.7, 0.7, 1
+                        rgba: 0, 0, 0, 1
                     Line:
                         width: 1
                         rectangle: (self.x, self.y, self.width, self.height)
@@ -162,7 +164,7 @@
                 text: "Relacionamento:"
                 font_size: 16
                 size_hint_y: None
-                height: 30  # Adjust label height
+                height: 30
 
             TextInput:
                 id: relacionamento_input_register
@@ -172,10 +174,11 @@
                 height: 30  # Adjust input height
                 background_color: (1, 1, 1, 1)
                 foreground_color: (0, 0, 0, 1)
+                cursor_color: (0, 0, 0, 1)
                 on_text_validate: app.focus_next_input('relacionamento_input_register')  # Handle TAB key
                 canvas.before:
                     Color:
-                        rgba: 0.7, 0.7, 0.7, 1
+                        rgba: 0, 0, 0, 1
                     Line:
                         width: 1
                         rectangle: (self.x, self.y, self.width, self.height)
@@ -184,7 +187,7 @@
                 text: "Telefone:"
                 font_size: 16
                 size_hint_y: None
-                height: 30  # Adjust label height
+                height: 30
 
             TextInput:
                 id: telefone_input_register
@@ -194,10 +197,11 @@
                 height: 30  # Adjust input height
                 background_color: (1, 1, 1, 1)
                 foreground_color: (0, 0, 0, 1)
+                cursor_color: (0, 0, 0, 1)
                 on_text_validate: app.focus_next_input('telefone_input_register')  # Handle TAB key
                 canvas.before:
                     Color:
-                        rgba: 0.7, 0.7, 0.7, 1
+                        rgba: 0, 0, 0, 1
                     Line:
                         width: 1
                         rectangle: (self.x, self.y, self.width, self.height)
