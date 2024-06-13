@@ -1,5 +1,3 @@
-#:kivy 1.0.9
-
 <qrcodeLayout>:
     cols: 2
     GridLayout:
@@ -13,6 +11,7 @@
             id: result_label
             text: ""
             size_hint: 1, 0.5
+            font_size: 24
             canvas.before:
                 Color:
                     rgba: 1, 1, 1, 0.2
@@ -21,28 +20,34 @@
                     pos: self.pos
 
         Button:
-            text: 'Capture'
+            text: 'LIMPAR CAMPO'
             size_hint_y: None
             height: '48dp'
-            on_press: app.activate_camera()
+            on_press: app.clean_input()
 
         Button:
-            text: 'Capture'
+            text: 'CONFIRMAR PRESENÇA'
             size_hint_y: None
             height: '48dp'
-            on_press: app.activate_camera()
+            on_press: app.confirm_presence()
 
         Button:
-            text: 'Capture'
+            text: 'REMOVER PRESENÇA'
             size_hint_y: None
             height: '48dp'
-            on_press: app.activate_camera()
+            on_press: app.revert_presence()
 
         Button:
-            text: 'Capture'
+            text: 'NOVO REGISTRO'
             size_hint_y: None
             height: '48dp'
-            on_press: app.activate_camera()
+            on_press: app.open_register_popup()
+
+        Button:
+            text: 'VISUALIZA REGISTOS'
+            size_hint_y: None
+            height: '48dp'
+            on_press: app.view_records()
 
         TextInput:
             id: cpf_input
@@ -70,3 +75,131 @@
             on_press: app.activate_camera()
             size_hint_y: None
             height: '48dp'
+
+<RegisterPopup>:
+    title: "Cadastro Novo"
+    size_hint: 0.7, 0.5  # Adjust the window size here
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 10
+        spacing: 10
+
+        GridLayout:
+            cols: 2
+            padding: 10
+            spacing: 10
+
+            Label:
+                text: "CPF:"
+                font_size: 16
+                size_hint_y: None
+                height: 30  # Adjust label height
+
+            TextInput:
+                id: cpf_input_register
+                font_size: '16sp'
+                multiline: False
+                size_hint_y: None
+                height: 30  # Adjust input height
+                background_color: (1, 1, 1, 1)  # White background
+                foreground_color: (0, 0, 0, 1)  # Black text
+                canvas.before:
+                    Color:
+                        rgba: 0.7, 0.7, 0.7, 1  # Light grey border
+                    Line:
+                        width: 1
+                        rectangle: (self.x, self.y, self.width, self.height)
+
+            Label:
+                text: "Nome:"
+                font_size: 16
+                size_hint_y: None
+                height: 30  # Adjust label height
+
+            TextInput:
+                id: nome_input_register
+                font_size: '16sp'
+                multiline: False
+                size_hint_y: None
+                height: 30  # Adjust input height
+                background_color: (1, 1, 1, 1)
+                foreground_color: (0, 0, 0, 1)
+                canvas.before:
+                    Color:
+                        rgba: 0.7, 0.7, 0.7, 1
+                    Line:
+                        width: 1
+                        rectangle: (self.x, self.y, self.width, self.height)
+
+            Label:
+                text: "Relacionamento:"
+                font_size: 16
+                size_hint_y: None
+                height: 30  # Adjust label height
+
+            TextInput:
+                id: relacionamento_input_register
+                font_size: '16sp'
+                multiline: False
+                size_hint_y: None
+                height: 30  # Adjust input height
+                background_color: (1, 1, 1, 1)
+                foreground_color: (0, 0, 0, 1)
+                canvas.before:
+                    Color:
+                        rgba: 0.7, 0.7, 0.7, 1
+                    Line:
+                        width: 1
+                        rectangle: (self.x, self.y, self.width, self.height)
+
+            Label:
+                text: "Telefone:"
+                font_size: 16
+                size_hint_y: None
+                height: 30  # Adjust label height
+
+            TextInput:
+                id: telefone_input_register
+                font_size: '16sp'
+                multiline: False
+                size_hint_y: None
+                height: 30  # Adjust input height
+                background_color: (1, 1, 1, 1)
+                foreground_color: (0, 0, 0, 1)
+                canvas.before:
+                    Color:
+                        rgba: 0.7, 0.7, 0.7, 1
+                    Line:
+                        width: 1
+                        rectangle: (self.x, self.y, self.width, self.height)
+
+        BoxLayout:
+            size_hint_y: None
+            height: '48dp'
+            spacing: 10  # Add some spacing between buttons
+            Button:
+                text: "Salvar"
+                on_press: app.save_new_entry()
+            Button:
+                text: "Cancelar"
+                on_press: app.close_popup()
+
+<RecordsPopup>:
+    title: "Registros"
+    size_hint: 0.9, 0.9
+    BoxLayout:
+        orientation: 'vertical'
+        ScrollView:
+            size_hint: 1, 1
+            GridLayout:
+                id: content_records
+                padding: 2
+                spacing: 2
+                size_hint_y: None
+                cols: 5  # Adjust based on your columns
+
+        Button:
+            text: "Voltar"
+            size_hint: None, None
+            size: 200, 50
+            on_press: app.close_popup()

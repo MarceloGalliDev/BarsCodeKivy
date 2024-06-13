@@ -6,12 +6,10 @@ import kivy
 import cv2
 import pandas as pd
 from kivy.app import App
-from kivy.uix.widget import Widget
+from kivy.uix.popup import Popup
+from kivy.uix.label import Label
 from kivy.uix.gridlayout import GridLayout
 from kivy.clock import Clock
-from kivy.uix.image import Image
-from kivy.graphics import Color, Rectangle
-from kivy.uix.scrollview import ScrollView
 from kivy.graphics.texture import Texture
 
 
@@ -19,15 +17,23 @@ class qrcodeLayout(GridLayout):
     pass
 
 
+class RegisterPopup(Popup):
+    pass
+
+
+class RecordsPopup(Popup):
+    pass
+
+
 class qrcode(App):
     def build(self):
+        self.excel_file_path = "tabela/tabela.xlsx"
+        self.load_excel()
         return qrcodeLayout()
-    
-    
     
     def activate_camera(self):
         try:
-            self.capture = cv2.VideoCapture(0)  # Default to camera index 0
+            self.capture = cv2.VideoCapture(0)
             if not self.capture.isOpened():
                 raise ValueError("Camera not available")
         except:
@@ -35,7 +41,7 @@ class qrcode(App):
             self.root.ids.result_label.text = "Failed to access camera"
             return
         
-        Clock.schedule_interval(self.update_camera, 1.0 / 30.0)
+        Clock.schedule_interval(self.update_camera, 1.0 / 20.0)
 
     def update_camera(self, dt):
         if self.capture is None:
@@ -52,13 +58,164 @@ class qrcode(App):
             data, bbox, _ = qr_decoder.detectAndDecode(frame)
             if bbox is not None and data:
                 self.root.ids.cpf_input.text = data
-                self.root.ids.result_label.text = "QR Code detectado"
+                self.lookup_name(data)
                 self.root.ids.capture_image.texture = texture
 
     def close_camera(self):
         if self.capture:
             self.capture.release()
         Clock.unschedule(self.update_camera)
+
+    def load_excel(self):
+        try:
+            self.df = pd.read_excel(
+                self.excel_file_path,
+                dtype={"codigo": str, "cpf": str, "nome": str, "presença": str, "telefone": str},
+            )
+        except Exception as e:
+            self.root.ids.result_label.text = f"Failed to load Excel file: {str(e)}"
+
+    def lookup_name(self, code=None):
+        if code is None:
+            code = self.root.ids.cpf_input.text.strip()
+        if not code:
+            self.root.ids.result_label.text = "Nenhum código escaneado"
+            return
+
+        self.load_excel()
+
+        record = self.df.loc[self.df["codigo"] == code]
+        if not record.empty:
+            codigo = record.iloc[0]["codigo"]
+            cpf = record.iloc[0]["cpf"]
+            name = record.iloc[0]["nome"]
+            telefone = record.iloc[0]["telefone"]
+            if record.iloc[0]["presença"] == "Presente":
+                self.root.ids.result_label.text = f"Código: {codigo}\nCPF: {cpf}\nNome: {name}\nTelefone: {telefone}\nPresença já confirmada"
+                self.current_record = None
+            else:
+                self.root.ids.result_label.text = f"Código: {codigo}\nNome: {name}\nTelefone: {telefone}"
+                self.current_record = record
+        else:
+            self.root.ids.result_label.text = "Código não encontrado"
+            self.current_record = None
+
+    def confirm_presence(self):
+        code = self.root.ids.cpf_input.text.strip()
+        if not code:
+            self.root.ids.result_label.text = "Nenhum código escaneado"
+            return
+
+        self.load_excel()
+
+        record = self.df.loc[self.df["codigo"] == code]
+        if not record.empty:
+            if record.iloc[0]["presença"] == "Presente":
+                self.root.ids.result_label.text = "Presença já confirmada"
+            else:
+                idx = record.index[0]
+                self.df.at[idx, "presença"] = "Presente"
+                self.df.to_excel(self.excel_file_path, index=False)
+                self.root.ids.result_label.text = "Presença confirmada"
+        else:
+            self.root.ids.result_label.text = "Código não encontrado"
+
+    def revert_presence(self):
+        code = self.root.ids.cpf_input.text.strip()
+        if not code:
+            self.root.ids.result_label.text = "Nenhum código escaneado"
+            return
+
+        self.load_excel()
+
+        record = self.df.loc[self.df["codigo"] == code]
+        if not record.empty:
+            if record.iloc[0]["presença"] == "Presente":
+                idx = record.index[0]
+                self.df.at[idx, "presença"] = "-"
+                self.df["telefone"] = self.df["telefone"].astype(str)
+                self.df.to_excel(self.excel_file_path, index=False)
+                self.root.ids.result_label.text = "Presença revertida"
+            else:
+                self.root.ids.result_label.text = "Presença não estava confirmada"
+        else:
+            self.root.ids.result_label.text = "Código não encontrado"
+
+    def clean_input(self):
+        self.root.ids.cpf_input.text = ""
+        self.root.ids.result_label.text = ""
+
+    def open_register_popup(self):
+        self.register_popup = RegisterPopup()
+        self.register_popup.open()
+
+    def save_new_entry(self):
+        cpf = self.register_popup.ids.cpf_input_register.text.strip()
+        nome = self.register_popup.ids.nome_input_register.text.strip()
+        relacionamento = self.register_popup.ids.relacionamento_input_register.text.strip()
+        telefone = self.register_popup.ids.telefone_input_register.text.strip()
+
+        self.load_excel()
+
+        # Get the last index and increment it
+        if self.df.index.size > 0:
+            last_index = self.df.index.max() + 1
+        else:
+            last_index = 0
+
+        new_entry = pd.DataFrame(
+            [
+                {
+                    "codigo": "1000" + str(last_index),
+                    "cpf": cpf,
+                    "nome": nome,
+                    "relacionamento": relacionamento,
+                    "telefone": telefone,
+                    "presença": "Presente",
+                }
+            ],
+            index=[last_index]
+        )
+
+        self.df = pd.concat([self.df, new_entry])
+        self.df["telefone"] = self.df["telefone"].astype(str)
+        self.df.to_excel(self.excel_file_path, index=True)  # Save with index
+
+        self.register_popup.dismiss()
+        self.root.ids.result_label.text = "Novo cadastro salvo com presença confirmada"
+
+    def view_records(self):
+        self.load_excel()
+
+        self.records_popup = RecordsPopup()
+
+        grid = self.records_popup.ids.content_records
+        grid.clear_widgets()
+
+        # Define the columns to display
+        columns_to_display = ["codigo", "nome", "relacionamento", "telefone"]
+        grid.cols = len(columns_to_display) + 1  # Include index column
+
+        # Add headers
+        grid.add_widget(Label(text="Index", size_hint_y=None, height=40))
+        for column in columns_to_display:
+            grid.add_widget(Label(text=column.capitalize(), size_hint_y=None, height=40))
+
+        # Add data rows
+        for index, row in self.df.iterrows():
+            grid.add_widget(Label(text=str(index), size_hint_y=None, height=40))
+            for col in columns_to_display:
+                grid.add_widget(Label(text=str(row[col]), size_hint_y=None, height=40))
+
+        grid.bind(minimum_height=grid.setter('height'))
+
+        self.records_popup.open()
+
+    def close_popup(self, instance=None):
+        if hasattr(self, 'register_popup') and self.register_popup:
+            self.register_popup.dismiss()
+        if hasattr(self, 'records_popup') and self.records_popup:
+            self.records_popup.dismiss()
 
 
 qrcode().run()
