@@ -76,7 +76,6 @@ class qrcode(App):
                 index_col=0
             )
             print("Excel file loaded successfully.")
-            print("Columns in the DataFrame:", self.df.columns)
         except Exception as e:
             self.root.ids.result_label.text = f"Failed to load Excel file: {str(e)}"
             print(f"Failed to load Excel file: {str(e)}")
@@ -114,8 +113,6 @@ class qrcode(App):
             return
 
         self.load_excel()
-        print("DataFrame after loading in confirm_presence:")
-        print(self.df.head())
 
         try:
             record = self.df.loc[self.df["codigo"] == code]
@@ -131,7 +128,6 @@ class qrcode(App):
                 self.root.ids.result_label.text = "Código não encontrado"
         except KeyError as e:
             self.root.ids.result_label.text = f"Erro ao buscar código: {str(e)}"
-            print(f"Erro ao buscar código: {str(e)}")
 
     def revert_presence(self):
         code = self.root.ids.cpf_input.text.strip()
