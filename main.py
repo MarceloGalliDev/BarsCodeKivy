@@ -1,6 +1,7 @@
 # pylint: disable=all
 # flake8: noqa
 
+import logging
 import time
 from turtle import width
 import kivy
@@ -40,10 +41,10 @@ class qrcode(App):
             self.capture.set(3,640)
             self.capture.set(4,480)
             if not self.capture.isOpened():
-                raise ValueError("Camera not available")
+                raise ValueError("Câmera não disponível")
         except:
             self.capture = None
-            self.root.ids.result_label.text = "Failed to access camera"
+            self.root.ids.result_label.text = "Falha ao acessar camêra"
             return
         
         Clock.schedule_interval(self.update_camera, 1.0 / 30.0)
@@ -59,30 +60,35 @@ class qrcode(App):
             texture = Texture.create(size=(img.shape[1], img.shape[0]), colorfmt='bgr')
             texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
             self.root.ids.camera_image.texture = texture
+            
+            try:
 
-            # Decode the QR code from the image
-            for barcode in decode(img):
-                myData = barcode.data.decode('utf-8')
-                self.root.ids.cpf_input.text = myData
+                # Decode the QR code from the image
+                for barcode in decode(img):
+                    myData = barcode.data.decode('utf-8')
+                    self.root.ids.cpf_input.text = myData
 
-                # Draw bounding box around QR code
-                pts = np.array([barcode.polygon], np.int32)
-                pts = pts.reshape((-1, 1, 2))
-                cv2.polylines(img, [pts], True, (0, 255, 0), 5)
-                pts2 = barcode.rect
+                    # Draw bounding box around QR code
+                    pts = np.array([barcode.polygon], np.int32)
+                    pts = pts.reshape((-1, 1, 2))
+                    cv2.polylines(img, [pts], True, (0, 255, 0), 5)
+                    pts2 = barcode.rect
 
-                # Process the QR code data
-                self.confirm_presence(myData)
-                self.lookup_name(myData)
+                    # Process the QR code data
+                    self.confirm_presence(myData)
+                    self.lookup_name(myData)
 
-                display_text = f"QRCode detectado: {myData}"
-                cv2.putText(img, display_text, (pts2[0], pts2[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+                    display_text = f"QRCode detectado: {myData}"
+                    cv2.putText(img, display_text, (pts2[0], pts2[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
-                # Display the captured image with the QR code detection
-                buf = cv2.flip(img, 0).tobytes()
-                capture_texture = Texture.create(size=(img.shape[1], img.shape[0]), colorfmt='bgr')
-                capture_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
-                self.root.ids.capture_image.texture = capture_texture
+                    # Display the captured image with the QR code detection
+                    buf = cv2.flip(img, 0).tobytes()
+                    capture_texture = Texture.create(size=(img.shape[1], img.shape[0]), colorfmt='bgr')
+                    capture_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
+                    self.root.ids.capture_image.texture = capture_texture
+            except Exception as e:
+                logging.error(f"Erro decodificador QR code: {e}")
+                self.root.ids.result_label.text = f"Erro decodificador QR code: {e}"
 
     def close_camera(self):
         if self.capture:
@@ -97,7 +103,7 @@ class qrcode(App):
                 index_col=0
             )
         except Exception as e:
-            self.root.ids.result_label.text = f"Failed to load Excel file: {str(e)}"
+            self.root.ids.result_label.text = f"Falha ao acessar excel: {str(e)}"
 
     def lookup_name(self, code=None):
         if code is None:
