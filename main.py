@@ -60,9 +60,10 @@ class qrcode(App):
             texture = Texture.create(size=(img.shape[1], img.shape[0]), colorfmt='bgr')
             texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
             self.root.ids.camera_image.texture = texture
-            
-            try:
 
+            qr_codes_detected = False  # Flag to check if QR code is detected
+
+            try:
                 # Decode the QR code from the image
                 for barcode in decode(img):
                     myData = barcode.data.decode('utf-8')
@@ -78,17 +79,26 @@ class qrcode(App):
                     self.confirm_presence(myData)
                     self.lookup_name(myData)
 
-                    display_text = f"QRCode detectado: {myData}"
+                    display_text = f"QRCode detectado"
                     cv2.putText(img, display_text, (pts2[0], pts2[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
-                    # Display the captured image with the QR code detection
+                    # Update the captured image with the QR code detection
                     buf = cv2.flip(img, 0).tobytes()
                     capture_texture = Texture.create(size=(img.shape[1], img.shape[0]), colorfmt='bgr')
                     capture_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
                     self.root.ids.capture_image.texture = capture_texture
+
+                    qr_codes_detected = True  # Set the flag to True if a QR code is detected
+
             except Exception as e:
                 logging.error(f"Erro decodificador QR code: {e}")
                 self.root.ids.result_label.text = f"Erro decodificador QR code: {e}"
+
+            if not qr_codes_detected:
+                # If no QR code is detected, reset the input field and result label
+                self.root.ids.cpf_input.text = ""
+                self.root.ids.result_label.text = "Aguardando QR Code..."
+
 
     def close_camera(self):
         if self.capture:
