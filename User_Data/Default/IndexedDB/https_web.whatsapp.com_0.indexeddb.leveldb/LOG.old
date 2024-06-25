@@ -1,0 +1,13 @@
+2024/06/25-11:57:11.658 350c4 Reusing MANIFEST /home/marcelo-dev/Documentos/GitHub/BarsCodeKivy/User_Data/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2024/06/25-11:57:11.658 350c4 Recovering log #58
+2024/06/25-11:57:11.664 350c4 Reusing old log /home/marcelo-dev/Documentos/GitHub/BarsCodeKivy/User_Data/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/000058.log 
+2024/06/25-11:57:12.884 350c5 Level-0 table #63: started
+2024/06/25-11:57:12.890 350c5 Level-0 table #63: 128253 bytes OK
+2024/06/25-11:57:12.893 350c5 Delete type=0 #58
+2024/06/25-11:57:12.893 350c5 Manual compaction at level-0 from '\x00\x1d\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x1e\x00\x00\x00' @ 0 : 0; will stop at (end)
+2024/06/25-11:57:14.103 350c4 Compacting 1@1 + 1@2 files
+2024/06/25-11:57:14.131 350c4 Generated table #64@1: 20928 keys, 851728 bytes
+2024/06/25-11:57:14.132 350c4 Compacted 1@1 + 1@2 files => 851728 bytes
+2024/06/25-11:57:14.134 350c4 compacted to: files[ 0 0 1 0 0 0 0 ]
+2024/06/25-11:57:14.134 350c4 Delete type=2 #60
+2024/06/25-11:57:14.134 350c4 Delete type=2 #63
