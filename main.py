@@ -31,7 +31,7 @@ class RecordsPopup(Popup):
 
 class qrcode(App):
     def build(self):
-        self.excel_file_path = "tabela/lista-teste.xlsx"
+        self.excel_file_path = "tabela/lista-envio.xlsx"
         self.load_excel()
         return qrcodeLayout()
     
