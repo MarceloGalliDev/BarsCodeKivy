@@ -41,58 +41,6 @@ class WhatsAppAutomator:
         
         print('Lista aceita')
         time.sleep(2)
-        
-        try:
-            indice = df[df['sequencia'] != '-'].iloc[-1]['sequencia']
-            sequencia = indice
-        except:
-            indice = 0
-            sequencia = 0
-        
-        for i in range(indice, len(df)):
-            index = df.loc[i, "indice"]
-            nome = df.loc[i, "nome"]
-            celular = df.loc[i, "celular"]
-            dataAtualCobranca = datetime.now().strftime("%d/%m/%Y %H:%M")
-            status_200 = "Ok!"
-            status_400 = "Inválido!"
-            status_404 = "Erro!"
-
-    
-            send_text = f'''
-            Olá *{nome}* 🤩
-            Seu convite do *Arráia Dusnei* CHEGOU!!! 🎉
-            '''
-
-            time.sleep(2)
-            
-            texto_codificado = urllib.parse.quote(send_text)
-            link = f"https://web.whatsapp.com/send?phone={celular}&text={texto_codificado}"
-            self.driver.get(link)
-            
-            self.driver.find_element(by=By.CSS_SELECTOR)
-
-            time.sleep(2)
-
-            while True:
-                while len(self.driver.find_elements(by=By.XPATH, value='//*[@id="app"]')):
-                    pass
-
-                while len(self.driver.find_elements(by=By.ID, value='side')) < 1:
-                    pass
-                
-                if len(self.driver.find_elements(by=By.XPATH, value='//*[@id="main"]/footer/div[1]/div/span[2]/div/div[1]/div[2]/div/div/div/span/svg')) < 1:
-                    time.sleep(4)
-                    try:
-                        self.driver.find_element(
-                            by=By.XPATH, value='//*[@id="main"]/footer/div[1]/div/span[2]/div/div[1]/div[2]/div/div/div/span/svg').click()
-                    except:
-                        time.sleep(2)
-                        self.driver.find_element(
-                            by=By.XPATH, value='//*[@id="main"]/footer/div[1]/div/span[2]/div/div[1]/div[2]/div/div/div/span/svg').click()
-
-                    print('enviado')
-                    time.sleep(2)
 
 
 if __name__ == "__main__":
