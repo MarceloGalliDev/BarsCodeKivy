@@ -7,8 +7,7 @@ import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.moduledrawers.pil import RoundedModuleDrawer
-import boto3
-from botocore.exceptions import NoCredentialsError
+
 
 
 def gerando_dados():
@@ -16,20 +15,35 @@ def gerando_dados():
     df = pd.read_excel(
         excel_file_path,
         dtype={
+            "index": int,
             "codigo": str,
             "cpf": str,
             "nome": str,
             "celular": str,
             "presenca": str,
+            "link": str
         }
     )
 
-    for index, row in df.iterrows():
-        codigo = row["codigo"]
-        cpf = row["cpf"]
-        nome = row["nome"]
-        celular = row["celular"]
+    try:
+        indice = df[df['sequencia'] != '-'].iloc[-1]['sequencia']
+    except:  # noqa: E722
+        indice = 0
+
+    for i in range(indice, len(df)):
+        index = df.loc[i]['index']
+        codigo = df.loc[i, "codigo"]
+        cpf = df.loc[i, "cpf"]
+        nome = df.loc[i, "nome"]
+        celular = df.loc[i, "celular"]
         text = f"Código: {codigo}\nNome: {nome}\nCPF: {cpf}\ncelular: {celular}"
+
+    # for index, row in df.iterrows():
+    #     codigo = row["codigo"]
+    #     cpf = row["cpf"]
+    #     nome = row["nome"]
+    #     celular = row["celular"]
+    #     text = f"Código: {codigo}\nNome: {nome}\nCPF: {cpf}\ncelular: {celular}"
         
         create_text_image(text, codigo)
         create_qrcode_image(codigo)
