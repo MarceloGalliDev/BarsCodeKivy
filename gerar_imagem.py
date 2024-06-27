@@ -7,18 +7,20 @@ import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.moduledrawers.pil import RoundedModuleDrawer
+import boto3
+from botocore.exceptions import NoCredentialsError
 
 
 def gerando_dados():
-    excel_file_path = "tabela/tabela.xlsx"
+    excel_file_path = "tabela/lista-envio.xlsx"
     df = pd.read_excel(
         excel_file_path,
         dtype={
             "codigo": str,
             "cpf": str,
             "nome": str,
-            "presença": str,
-            "telefone": str
+            "celular": str,
+            "presenca": str,
         }
     )
 
@@ -26,8 +28,8 @@ def gerando_dados():
         codigo = row["codigo"]
         cpf = row["cpf"]
         nome = row["nome"]
-        telefone = row["telefone"]
-        text = f"Código: {codigo}\nNome: {nome}\nCPF: {cpf}\nTelefone: {telefone}"
+        celular = row["celular"]
+        text = f"Código: {codigo}\nNome: {nome}\nCPF: {cpf}\ncelular: {celular}"
         
         create_text_image(text, codigo)
         create_qrcode_image(codigo)
@@ -37,9 +39,9 @@ def gerando_dados():
 def create_text_image(text, codigo_qr):
     font_size = 32
     image_width = 600
-    image_height = 200
+    image_height = 180
 
-    image = Image.new('RGBA', (image_width, image_height), "white")
+    image = Image.new('RGBA', (image_width, image_height), (255, 255, 255))
     draw = ImageDraw.Draw(image)
     
     font_path = os.path.join(os.getcwd(), "assets/Roboto-Regular.ttf")
@@ -72,7 +74,7 @@ def create_qrcode_image(codigo_qr):
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_H,
-        box_size=17,
+        box_size=45,
         border=1,
     )
     qr.add_data(codigo_qr)
@@ -91,7 +93,7 @@ def insert_qr_code(codigo_qr):
     base_image_path = "assets/imagem-convite.png"
     text_image_path = f"qrcodes/dados/dados_{codigo_qr}.png"
     qrcode_image_path = f"qrcodes/qrcode/qr_{codigo_qr}.png"
-    output_image_path = f"qrcodes/final/final_{codigo_qr}.png"
+    output_image_path = f"qrcodes/final/convite-{codigo_qr}.png"
     
     base_image = Image.open(base_image_path)
     qr_image = Image.open(qrcode_image_path)
@@ -100,8 +102,8 @@ def insert_qr_code(codigo_qr):
     base_width, base_height = base_image.size
     qr_width, qr_height = qr_image.size
 
-    position1 = ((base_width - qr_width) - 890, base_height - qr_height - 10)
-    position2 = ((base_width - qr_width) - 300, base_height - qr_height + 150)
+    position1 = ((base_width - qr_width) - 130, base_height - qr_height - 200)
+    position2 = ((base_width - qr_width) + 100, base_height - qr_height + 820)
 
     # Inserir o QR code na posição especificada
     base_image.paste(qr_image, position1)
@@ -111,4 +113,5 @@ def insert_qr_code(codigo_qr):
     base_image.save(output_image_path)
 
 
-gerando_dados()
+if __name__ == "__main__":
+    gerando_dados()

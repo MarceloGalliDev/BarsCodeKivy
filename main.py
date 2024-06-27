@@ -31,7 +31,7 @@ class RecordsPopup(Popup):
 
 class qrcode(App):
     def build(self):
-        self.excel_file_path = "tabela/tabela.xlsx"
+        self.excel_file_path = "tabela/lista-envio.xlsx"
         self.load_excel()
         return qrcodeLayout()
     
@@ -44,7 +44,21 @@ class qrcode(App):
                 raise ValueError("Câmera não disponível")
         except:
             self.capture = None
-            self.root.ids.result_label.text = "Falha ao acessar camêra"
+            self.root.ids.result_label.text = "Falha ao acessar câmera"
+            return
+        
+        Clock.schedule_interval(self.update_camera, 1.0 / 30.0)
+
+    def activate_camera_2(self):
+        try:
+            self.capture = cv2.VideoCapture(1)
+            self.capture.set(3,640)
+            self.capture.set(4,480)
+            if not self.capture.isOpened():
+                raise ValueError("Câmera não disponível")
+        except:
+            self.capture = None
+            self.root.ids.result_label.text = "Falha ao acessar câmera"
             return
         
         Clock.schedule_interval(self.update_camera, 1.0 / 30.0)
@@ -109,7 +123,7 @@ class qrcode(App):
         try:
             self.df = pd.read_excel(
                 self.excel_file_path,
-                dtype={"codigo": str, "cpf": str, "nome": str, "presença": str, "telefone": str},
+                dtype={"codigo": str, "cpf": str, "nome": str, "presenca": str, "celular": str, "link": str},
                 index_col=0
             )
         except Exception as e:
@@ -129,12 +143,12 @@ class qrcode(App):
             codigo = record.iloc[0]["codigo"]
             cpf = record.iloc[0]["cpf"]
             name = record.iloc[0]["nome"]
-            telefone = record.iloc[0]["telefone"]
-            if record.iloc[0]["presença"] == "Presente":
-                self.root.ids.result_label.text = f"Código: {codigo}\nCPF: {cpf}\nNome: {name}\nTelefone: {telefone}\nPresença confirmada"
+            celular = record.iloc[0]["celular"]
+            if record.iloc[0]["presenca"] == "Presente":
+                self.root.ids.result_label.text = f"Código: {codigo}\nCPF: {cpf}\nNome: {name}\ncelular: {celular}\npresença confirmada"
                 self.current_record = None
             else:
-                self.root.ids.result_label.text = f"Código: {codigo}\nNome: {name}\nTelefone: {telefone}"
+                self.root.ids.result_label.text = f"Código: {codigo}\nNome: {name}\ncelular: {celular}"
                 self.current_record = record
         else:
             self.root.ids.result_label.text = "Código não encontrado"
@@ -152,11 +166,11 @@ class qrcode(App):
         try:
             record = self.df.loc[self.df["codigo"] == code]
             if not record.empty:
-                if record.iloc[0]["presença"] == "Presente":
+                if record.iloc[0]["presenca"] == "Presente":
                     self.root.ids.result_label.text = "Presença já confirmada"
                 else:
                     idx = record.index[0]
-                    self.df.at[idx, "presença"] = "Presente"
+                    self.df.at[idx, "presenca"] = "Presente"
                     self.df.to_excel(self.excel_file_path, index_label='index')
                     self.root.ids.result_label.text = "Presença confirmada"
             else:
@@ -174,10 +188,10 @@ class qrcode(App):
 
         record = self.df.loc[self.df["codigo"] == code]
         if not record.empty:
-            if record.iloc[0]["presença"] == "Presente":
+            if record.iloc[0]["presenca"] == "Presente":
                 idx = record.index[0]
-                self.df.at[idx, "presença"] = "-"
-                self.df["telefone"] = self.df["telefone"].astype(str)
+                self.df.at[idx, "presenca"] = "-"
+                self.df["celular"] = self.df["celular"].astype(str)
                 self.df.to_excel(self.excel_file_path, index_label='index')
                 self.root.ids.result_label.text = "Presença revertida"
             else:
@@ -197,7 +211,7 @@ class qrcode(App):
         cpf = self.register_popup.ids.cpf_input_register.text.strip()
         nome = self.register_popup.ids.nome_input_register.text.strip()
         relacionamento = self.register_popup.ids.relacionamento_input_register.text.strip()
-        telefone = self.register_popup.ids.telefone_input_register.text.strip()
+        celular = self.register_popup.ids.celular_input_register.text.strip()
 
         self.load_excel()
 
@@ -213,15 +227,15 @@ class qrcode(App):
                 "cpf": [cpf],
                 "nome": [nome],
                 "relacionamento": [relacionamento],
-                "telefone": [telefone],
-                "presença": ["Presente"]
+                "celular": [celular],
+                "presenca": ["Presente"]
             },
             index=[last_index]
         )
 
         # Concatenate new_entry with self.df
         self.df = pd.concat([self.df, new_entry])
-        self.df["telefone"] = self.df["telefone"].astype(str)
+        self.df["celular"] = self.df["celular"].astype(str)
 
         # Save with the index labeled as 'Index'
         self.df.to_excel(self.excel_file_path, index_label='index')
@@ -238,7 +252,7 @@ class qrcode(App):
         grid.clear_widgets()
 
         # Define the columns to display
-        columns_to_display = ["codigo", "nome", "relacionamento", "telefone", "presença"]
+        columns_to_display = ["codigo", "nome", "relacionamento", "celular", "presenca"]
         grid.cols = len(columns_to_display) + 1  # Include index column
 
         # Add headers
@@ -263,7 +277,7 @@ class qrcode(App):
             self.records_popup.dismiss()
 
     def focus_next_input(self, current_input_id):
-        input_ids = ['cpf_input_register', 'nome_input_register', 'relacionamento_input_register', 'telefone_input_register']
+        input_ids = ['cpf_input_register', 'nome_input_register', 'relacionamento_input_register', 'celular_input_register']
         next_index = (input_ids.index(current_input_id) + 1) % len(input_ids)
         next_input_id = input_ids[next_index]
         self.register_popup.ids[next_input_id].focus = True
