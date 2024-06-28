@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 .buildozer
 qrcodes/
+tabela/
 
 # C extensions
 *.so
