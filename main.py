@@ -2,8 +2,6 @@
 # flake8: noqa
 
 import logging
-import time
-from turtle import width
 import kivy
 import cv2
 import pandas as pd
@@ -34,33 +32,33 @@ class qrcode(App):
         self.excel_file_path = "tabela/lista-envio.xlsx"
         self.load_excel()
         return qrcodeLayout()
-    
+
     def activate_camera(self):
         try:
             self.capture = cv2.VideoCapture(0)
-            self.capture.set(3,640)
-            self.capture.set(4,480)
+            self.capture.set(3, 640)
+            self.capture.set(4, 480)
             if not self.capture.isOpened():
                 raise ValueError("Câmera não disponível")
         except:
             self.capture = None
             self.root.ids.result_label.text = "Falha ao acessar câmera"
             return
-        
+
         Clock.schedule_interval(self.update_camera, 1.0 / 30.0)
 
     def activate_camera_2(self):
         try:
             self.capture = cv2.VideoCapture(1)
-            self.capture.set(3,640)
-            self.capture.set(4,480)
+            self.capture.set(3, 640)
+            self.capture.set(4, 480)
             if not self.capture.isOpened():
                 raise ValueError("Câmera não disponível")
         except:
             self.capture = None
             self.root.ids.result_label.text = "Falha ao acessar câmera"
             return
-        
+
         Clock.schedule_interval(self.update_camera, 1.0 / 30.0)
 
     def update_camera(self, dt):
@@ -69,50 +67,49 @@ class qrcode(App):
 
         success, img = self.capture.read()
         if success:
-            # Display the live camera feed
             buf = cv2.flip(img, 0).tobytes()
             texture = Texture.create(size=(img.shape[1], img.shape[0]), colorfmt='bgr')
             texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
             self.root.ids.camera_image.texture = texture
 
-            qr_codes_detected = False  # Flag to check if QR code is detected
+            qr_codes_detected = False
 
             try:
-                # Decode the QR code from the image
                 for barcode in decode(img):
                     myData = barcode.data.decode('utf-8')
                     self.root.ids.cpf_input.text = myData
 
-                    # Draw bounding box around QR code
                     pts = np.array([barcode.polygon], np.int32)
                     pts = pts.reshape((-1, 1, 2))
                     cv2.polylines(img, [pts], True, (0, 255, 0), 5)
                     pts2 = barcode.rect
 
-                    # Process the QR code data
                     self.confirm_presence(myData)
                     self.lookup_name(myData)
 
                     display_text = f"QRCode detectado"
                     cv2.putText(img, display_text, (pts2[0], pts2[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
-                    # Update the captured image with the QR code detection
                     buf = cv2.flip(img, 0).tobytes()
                     capture_texture = Texture.create(size=(img.shape[1], img.shape[0]), colorfmt='bgr')
                     capture_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
                     self.root.ids.capture_image.texture = capture_texture
 
-                    qr_codes_detected = True  # Set the flag to True if a QR code is detected
+                    self.root.ids.last_result_label.text = f"Último QR Code Capturado: {myData}"
+                    self.root.ids.result_label.text = display_text
+                    Clock.schedule_once(self.clear_result_label, 4)
+
+                    qr_codes_detected = True
 
             except Exception as e:
                 logging.error(f"Erro decodificador QR code: {e}")
                 self.root.ids.result_label.text = f"Erro decodificador QR code: {e}"
 
             if not qr_codes_detected:
-                # If no QR code is detected, reset the input field and result label
-                self.root.ids.cpf_input.text = ""
                 self.root.ids.result_label.text = "Aguardando QR Code..."
 
+    def clear_result_label(self, dt):
+        self.root.ids.result_label.text = ""
 
     def close_camera(self):
         if self.capture:
@@ -215,11 +212,10 @@ class qrcode(App):
 
         self.load_excel()
 
-        # Get the last index and increment it
         if self.df.index.size > 0:
             last_index = int(self.df.index.max()) + 1
         else:
-            last_index = 0  # Starting value for index
+            last_index = 0
 
         new_entry = pd.DataFrame(
             {
@@ -233,11 +229,9 @@ class qrcode(App):
             index=[last_index]
         )
 
-        # Concatenate new_entry with self.df
         self.df = pd.concat([self.df, new_entry])
         self.df["celular"] = self.df["celular"].astype(str)
 
-        # Save with the index labeled as 'Index'
         self.df.to_excel(self.excel_file_path, index_label='index')
 
         self.register_popup.dismiss()
@@ -251,16 +245,13 @@ class qrcode(App):
         grid = self.records_popup.ids.content_records
         grid.clear_widgets()
 
-        # Define the columns to display
         columns_to_display = ["codigo", "nome", "relacionamento", "celular", "presenca"]
-        grid.cols = len(columns_to_display) + 1  # Include index column
+        grid.cols = len(columns_to_display) + 1
 
-        # Add headers
         grid.add_widget(Label(text="Index", size_hint=(None, None), height=40, width=30))
         for column in columns_to_display:
             grid.add_widget(Label(text=column.capitalize(), size_hint_y=None, height=40))
 
-        # Add data rows
         for index, row in self.df.iterrows():
             grid.add_widget(Label(text=str(index), size_hint=(None, None), height=40, width=30))
             for col in columns_to_display:
@@ -283,4 +274,5 @@ class qrcode(App):
         self.register_popup.ids[next_input_id].focus = True
 
 
-qrcode().run()
+if __name__ == "__main__":
+    qrcode().run()
