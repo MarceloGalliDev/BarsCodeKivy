@@ -1,9 +1,11 @@
 # pylint: disable=all
 # flake8: noqa
 
+import os
 import logging
-import kivy
 import cv2
+import kivy
+import numpy as np
 import pandas as pd
 from kivy.app import App
 from kivy.uix.popup import Popup
@@ -11,26 +13,29 @@ from kivy.uix.label import Label
 from kivy.uix.gridlayout import GridLayout
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
-import numpy as np
 from pyzbar.pyzbar import decode
-
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 
 class qrcodeLayout(GridLayout):
     pass
 
-
 class RegisterPopup(Popup):
     pass
 
-
 class RecordsPopup(Popup):
     pass
-
 
 class qrcode(App):
     def build(self):
         self.excel_file_path = "tabela/lista-envio.xlsx"
         self.load_excel()
+        self.image_saved = False
+        self.excel_google_drive_folder_id = '13FG1hOOEo06iCEeyBYst1lHFS2cwtNmR'
+        self.image_google_drive_folder_id = '1kPevvxGN5_jo0dpUETPd9VdTlvxx8P08'
+        self.drive_service = self.authenticate_google_drive()
+        Clock.schedule_interval(self.upload_periodically, 600)
         return qrcodeLayout()
 
     def activate_camera(self):
@@ -70,8 +75,11 @@ class qrcode(App):
                     cv2.polylines(img, [pts], True, (0, 255, 0), 5)
                     pts2 = barcode.rect
 
-                    self.confirm_presence(myData)
-                    self.lookup_qrcode(myData)
+                    if not self.image_saved:
+                        self.confirm_presence(myData)
+                        self.lookup_qrcode(myData)
+                        self.save_and_upload_image(img, myData)
+                        self.image_saved = True
 
                     display_text = f"QRCode detectado"
                     cv2.putText(img, display_text, (pts2[0], pts2[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
@@ -89,6 +97,16 @@ class qrcode(App):
 
             if not qr_codes_detected:
                 self.root.ids.result_label.text = "Aguardando QR Code..."
+                self.image_saved = False 
+
+    def save_and_upload_image(self, img, code):
+        record = self.df.loc[self.df["codigo"] == code]
+        if not record.empty:
+            name = record.iloc[0]["nome"]
+            img_path = os.path.join("static/images", f"{name}.png")
+            cv2.imwrite(img_path, img)
+            logging.info(f"Imagem salva em: {img_path}")
+            self.upload_to_google_drive(img_path, f"{name}.png", self.image_google_drive_folder_id)
 
     def clear_button_message_label(self, dt):
         self.root.ids.button_message_label.text = ""
@@ -150,6 +168,31 @@ class qrcode(App):
             Clock.schedule_once(self.clear_button_message_label, 3)
             self.current_record = None
 
+    def authenticate_google_drive(self):
+        SCOPES = ['https://www.googleapis.com/auth/drive.file']
+        credentials = service_account.Credentials.from_service_account_file(
+            'credentials.json', scopes=SCOPES)
+        return build('drive', 'v3', credentials=credentials)
+
+    def upload_to_google_drive(self, file_path, file_name, folder_id):
+        file_metadata = {
+            'name': file_name,
+            'parents': [folder_id]
+        }
+        media = MediaFileUpload(file_path, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' if file_name.endswith('.xlsx') else 'image/png')
+        try:
+            file = self.drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+            logging.info(f'File ID: {file.get("id")} uploaded successfully to Google Drive.')
+        except Exception as e:
+            logging.error(f"Erro ao enviar para o Google Drive: {e}")
+
+    def upload_periodically(self, dt):
+        try:
+            self.upload_to_google_drive(self.excel_file_path, 'lista-envio-atualizada.xlsx')
+            logging.info("Lista enviado para o Google Drive.")
+        except Exception as e:
+            logging.error(f"Erro ao enviar para o Google Drive: {e}")
+
     def confirm_presence(self, code=None):
         if code is None:
             code = self.root.ids.cpf_input.text.strip()
@@ -170,6 +213,7 @@ class qrcode(App):
                     self.df.at[idx, "presenca"] = "Presente"
                     self.df.to_excel(self.excel_file_path, index_label='index')
                     self.root.ids.button_message_label.text = "Presença confirmada"
+                    # Removido o envio imediato para o Google Drive
             else:
                 self.root.ids.button_message_label.text = "Código não encontrado"
         except KeyError as e:
