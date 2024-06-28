@@ -47,20 +47,6 @@ class qrcode(App):
 
         Clock.schedule_interval(self.update_camera, 1.0 / 30.0)
 
-    def activate_camera_2(self):
-        try:
-            self.capture = cv2.VideoCapture(1)
-            self.capture.set(3, 640)
-            self.capture.set(4, 480)
-            if not self.capture.isOpened():
-                raise ValueError("Câmera não disponível")
-        except:
-            self.capture = None
-            self.root.ids.result_label.text = "Falha ao acessar câmera"
-            return
-
-        Clock.schedule_interval(self.update_camera, 1.0 / 30.0)
-
     def update_camera(self, dt):
         if self.capture is None:
             return
@@ -85,7 +71,7 @@ class qrcode(App):
                     pts2 = barcode.rect
 
                     self.confirm_presence(myData)
-                    self.lookup_name(myData)
+                    self.lookup_qrcode(myData)
 
                     display_text = f"QRCode detectado"
                     cv2.putText(img, display_text, (pts2[0], pts2[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
@@ -94,10 +80,6 @@ class qrcode(App):
                     capture_texture = Texture.create(size=(img.shape[1], img.shape[0]), colorfmt='bgr')
                     capture_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
                     self.root.ids.capture_image.texture = capture_texture
-
-                    self.root.ids.last_result_label.text = f"Último QR Code Capturado: {myData}"
-                    self.root.ids.result_label.text = display_text
-                    Clock.schedule_once(self.clear_result_label, 4)
 
                     qr_codes_detected = True
 
@@ -108,8 +90,8 @@ class qrcode(App):
             if not qr_codes_detected:
                 self.root.ids.result_label.text = "Aguardando QR Code..."
 
-    def clear_result_label(self, dt):
-        self.root.ids.result_label.text = ""
+    def clear_button_message_label(self, dt):
+        self.root.ids.button_message_label.text = ""
 
     def close_camera(self):
         if self.capture:
@@ -126,11 +108,28 @@ class qrcode(App):
         except Exception as e:
             self.root.ids.result_label.text = f"Falha ao acessar excel: {str(e)}"
 
-    def lookup_name(self, code=None):
-        if code is None:
-            code = self.root.ids.cpf_input.text.strip()
+    def lookup_qrcode(self, code):
+        self.load_excel()
+        record = self.df.loc[self.df["codigo"] == code]
+        if not record.empty:
+            codigo = record.iloc[0]["codigo"]
+            cpf = record.iloc[0]["cpf"]
+            name = record.iloc[0]["nome"]
+            celular = record.iloc[0]["celular"]
+            presenca = record.iloc[0]["presenca"]
+            result_text = f"Código: {codigo}\nNome: {name}\nCPF: {cpf}\nCelular: {celular}\nPresença: {presenca}"
+            self.root.ids.result_label.text = result_text
+            self.root.ids.last_result_label.text = result_text
+            self.current_record = record
+        else:
+            self.root.ids.result_label.text = "Código não encontrado"
+            self.current_record = None
+
+    def lookup_name(self):
+        code = self.root.ids.cpf_input.text.strip()
         if not code:
-            self.root.ids.result_label.text = "Nenhum código escaneado"
+            self.root.ids.button_message_label.text = "Nenhum código escaneado"
+            Clock.schedule_once(self.clear_button_message_label, 3)
             return
 
         self.load_excel()
@@ -141,21 +140,22 @@ class qrcode(App):
             cpf = record.iloc[0]["cpf"]
             name = record.iloc[0]["nome"]
             celular = record.iloc[0]["celular"]
-            if record.iloc[0]["presenca"] == "Presente":
-                self.root.ids.result_label.text = f"Código: {codigo}\nCPF: {cpf}\nNome: {name}\ncelular: {celular}\npresença confirmada"
-                self.current_record = None
-            else:
-                self.root.ids.result_label.text = f"Código: {codigo}\nNome: {name}\ncelular: {celular}"
-                self.current_record = record
+            presenca = record.iloc[0]["presenca"]
+            result_text = f"Código: {codigo}\nNome: {name}\nCPF: {cpf}\nCelular: {celular}\nPresença: {presenca}"
+            self.root.ids.result_label.text = result_text
+            self.root.ids.last_result_label.text = result_text
+            self.current_record = record
         else:
-            self.root.ids.result_label.text = "Código não encontrado"
+            self.root.ids.button_message_label.text = "Código não encontrado"
+            Clock.schedule_once(self.clear_button_message_label, 3)
             self.current_record = None
 
     def confirm_presence(self, code=None):
         if code is None:
             code = self.root.ids.cpf_input.text.strip()
         if not code:
-            self.root.ids.result_label.text = "Nenhum código escaneado"
+            self.root.ids.button_message_label.text = "Nenhum código escaneado"
+            Clock.schedule_once(self.clear_button_message_label, 3)
             return
 
         self.load_excel()
@@ -164,21 +164,24 @@ class qrcode(App):
             record = self.df.loc[self.df["codigo"] == code]
             if not record.empty:
                 if record.iloc[0]["presenca"] == "Presente":
-                    self.root.ids.result_label.text = "Presença já confirmada"
+                    self.root.ids.button_message_label.text = "Presença já confirmada"
                 else:
                     idx = record.index[0]
                     self.df.at[idx, "presenca"] = "Presente"
                     self.df.to_excel(self.excel_file_path, index_label='index')
-                    self.root.ids.result_label.text = "Presença confirmada"
+                    self.root.ids.button_message_label.text = "Presença confirmada"
             else:
-                self.root.ids.result_label.text = "Código não encontrado"
+                self.root.ids.button_message_label.text = "Código não encontrado"
         except KeyError as e:
-            self.root.ids.result_label.text = f"Erro ao buscar código: {str(e)}"
+            self.root.ids.button_message_label.text = f"Erro ao buscar código: {str(e)}"
+
+        Clock.schedule_once(self.clear_button_message_label, 3)
 
     def revert_presence(self):
         code = self.root.ids.cpf_input.text.strip()
         if not code:
-            self.root.ids.result_label.text = "Nenhum código escaneado"
+            self.root.ids.button_message_label.text = "Nenhum código escaneado"
+            Clock.schedule_once(self.clear_button_message_label, 3)
             return
 
         self.load_excel()
@@ -190,15 +193,18 @@ class qrcode(App):
                 self.df.at[idx, "presenca"] = "-"
                 self.df["celular"] = self.df["celular"].astype(str)
                 self.df.to_excel(self.excel_file_path, index_label='index')
-                self.root.ids.result_label.text = "Presença revertida"
+                self.root.ids.button_message_label.text = "Presença revertida"
             else:
-                self.root.ids.result_label.text = "Presença não estava confirmada"
+                self.root.ids.button_message_label.text = "Presença não estava confirmada"
         else:
-            self.root.ids.result_label.text = "Código não encontrado"
+            self.root.ids.button_message_label.text = "Código não encontrado"
+
+        Clock.schedule_once(self.clear_button_message_label, 3)
 
     def clean_input(self):
         self.root.ids.cpf_input.text = ""
         self.root.ids.result_label.text = ""
+        self.root.ids.button_message_label.text = ""
 
     def open_register_popup(self):
         self.register_popup = RegisterPopup()
@@ -235,7 +241,8 @@ class qrcode(App):
         self.df.to_excel(self.excel_file_path, index_label='index')
 
         self.register_popup.dismiss()
-        self.root.ids.result_label.text = "Novo cadastro salvo com presença confirmada"
+        self.root.ids.button_message_label.text = "Novo cadastro salvo com presença confirmada"
+        Clock.schedule_once(self.clear_button_message_label, 3)
 
     def view_records(self):
         self.load_excel()

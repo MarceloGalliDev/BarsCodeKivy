@@ -3,7 +3,7 @@
     GridLayout:
         size_hint: 1, 1
         cols: 1
-        rows: 9
+        rows: 10  # Atualize o número de linhas
         padding: 5
         spacing: 3
 
@@ -21,12 +21,25 @@
 
         Label:
             id: last_result_label
-            text: "Último QR Code Capturado: Nenhum"
+            text: "Última captura: Nenhum"
             font_size: 24
             size_hint: 1, 1
             canvas.before:
                 Color:
                     rgba: 0.9, 0.9, 0.9, 0.2
+                Rectangle:
+                    size: self.size
+                    pos: self.pos
+
+        Label:
+            id: button_message_label
+            text: ""
+            font_size: 18
+            size_hint: 1, None
+            height: '30dp'
+            canvas.before:
+                Color:
+                    rgba: 0.8, 0.8, 0.8, 0.2
                 Rectangle:
                     size: self.size
                     pos: self.pos
@@ -94,7 +107,6 @@
             size_hint_y: None
             height: '48dp'
             on_press: app.view_records()
-
 
     GridLayout:
         cols: 1
