@@ -135,7 +135,7 @@ class qrcode(App):
             name = record.iloc[0]["nome"]
             celular = record.iloc[0]["celular"]
             presenca = record.iloc[0]["presenca"]
-            result_text = f"Código: {codigo}\nNome: {name}\nCPF: {cpf}\nCelular: {celular}\nPresença: {presenca}"
+            result_text = f"Código: {codigo}\nNome: {name}\nCelular: {celular}\nPresença: {presenca}"
             self.root.ids.result_label.text = result_text
             self.root.ids.last_result_label.text = result_text
             self.current_record = record

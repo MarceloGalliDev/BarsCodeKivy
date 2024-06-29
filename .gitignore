@@ -5,6 +5,7 @@ __pycache__/
 .buildozer
 qrcodes/
 tabela/
+credentials.json
 
 # C extensions
 *.so
@@ -164,3 +165,5 @@ cython_debug/
 tabela.xlsx
 credentials.json
 *.json
+/static
+credentials.json
