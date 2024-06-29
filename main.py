@@ -40,7 +40,7 @@ class qrcode(App):
 
     def activate_camera(self):
         try:
-            self.capture = cv2.VideoCapture(0)
+            self.capture = cv2.VideoCapture(1)
             self.capture.set(3, 640)
             self.capture.set(4, 480)
             if not self.capture.isOpened():
