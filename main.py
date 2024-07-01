@@ -40,7 +40,7 @@ class qrcode(App):
 
     def activate_camera(self):
         try:
-            self.capture = cv2.VideoCapture(0)
+            self.capture = cv2.VideoCapture(1)
             self.capture.set(3, 640)
             self.capture.set(4, 480)
             if not self.capture.isOpened():
@@ -135,7 +135,7 @@ class qrcode(App):
             name = record.iloc[0]["nome"]
             celular = record.iloc[0]["celular"]
             presenca = record.iloc[0]["presenca"]
-            result_text = f"Código: {codigo}\nNome: {name}\nCPF: {cpf}\nCelular: {celular}\nPresença: {presenca}"
+            result_text = f"Código: {codigo}\nNome: {name}\nCelular: {celular}\nPresença: {presenca}"
             self.root.ids.result_label.text = result_text
             self.root.ids.last_result_label.text = result_text
             self.current_record = record
